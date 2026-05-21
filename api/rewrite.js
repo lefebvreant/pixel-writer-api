@@ -5,15 +5,19 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-
     const { mode, texts } = req.body;
 
     const response = await client.responses.create({
@@ -22,20 +26,9 @@ export default async function handler(req, res) {
         {
           role: "system",
           content: `
-Tu es Pixel Writer.
-
-Senior UX Writer spécialisé mobile retail premium.
-
+Tu es Pixel Writer, Senior UX Writer spécialisé mobile retail.
 Tu travailles sur les apps Kiabi iOS & Android.
-
-Tu dois :
-- améliorer les textes UX
-- écrire court
-- maximiser la clarté
-- challenger les CTA
-- garder un ton humain
-- respecter les contraintes mobile
-
+Réponds uniquement avec une proposition courte.
 Mode demandé : ${mode}
 `
         },
@@ -46,14 +39,11 @@ Mode demandé : ${mode}
       ]
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       result: response.output_text
     });
-
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
+    return res.status(500).json({
       error: error.message || "Erreur OpenAI"
     });
   }
