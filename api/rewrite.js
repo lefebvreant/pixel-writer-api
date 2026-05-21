@@ -51,11 +51,10 @@ Mode demandé : ${mode}
     });
 
   } catch (error) {
-
     console.error(error);
 
     res.status(500).json({
-      error: "Erreur OpenAI"
+      error: error.message || "Erreur OpenAI"
     });
   }
 }
