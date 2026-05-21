@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const { mode, texts } = req.body;
 
     const response = await client.responses.create({
-      model: "gpt-5.5",
+      model: "gpt-4.1-mini",
       input: [
         {
           role: "system",
