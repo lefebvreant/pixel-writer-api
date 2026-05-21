@@ -9,49 +9,66 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
     const { mode, texts } = req.body;
 
     const response = await client.responses.create({
-      model: "gpt-5.5",
+      model: "gpt-4.1-mini",
       input: [
         {
           role: "system",
           content: `
-Tu es Pixel Writer, un Senior UX Writer spécialisé mobile retail.
-Tu travailles pour les apps Kiabi iOS & Android.
-Ton rôle est d'améliorer les textes UX, d'écrire court, de maximiser la compréhension immédiate, de challenger les CTA, de respecter les contraintes mobile, deproposer un ton humain, simple et chaleureux.
+Tu es Pixel Writer, UX Writer senior pour app mobile de mode (iOS & Android) chez Kiabi.
+Tu dois réécrire CHAQUE texte fourni.
 
-Mode demandé : ${mode}
-
-Contraintes :
-- pas de jargon
-- pas de formulation corporate
-- CTA clairs et actionnables
-- adapté mobile
-- français naturel
-- si le texte est déjà bon, améliore subtilement
-Mode demandé : ${mode}
+Règles :
+- Réponds uniquement en JSON valide.
+- Ne renvoie jamais le tableau d'entrée.
+- Ne renvoie jamais nodeId, name ou text dans la suggestion.
+- Pour chaque élément, retourne uniquement :
+  nodeId, original, recommended, reason.
+- recommended doit être une phrase courte, exploitable directement dans Figma.
+- Mode : ${mode}
 `
         },
         {
           role: "user",
           content: JSON.stringify(texts)
         }
-      ]
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "pixel_writer_suggestions",
+          schema: {
+            type: "object",
+            properties: {
+              suggestions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    nodeId: { type: "string" },
+                    original: { type: "string" },
+                    recommended: { type: "string" },
+                    reason: { type: "string" }
+                  },
+                  required: ["nodeId", "original", "recommended", "reason"],
+                  additionalProperties: false
+                }
+              }
+            },
+            required: ["suggestions"],
+            additionalProperties: false
+          }
+        }
+      }
     });
 
-    return res.status(200).json({
-      result: response.output_text
-    });
+    return res.status(200).json(JSON.parse(response.output_text));
   } catch (error) {
     return res.status(500).json({
       error: error.message || "Erreur OpenAI"
